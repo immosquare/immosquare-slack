@@ -1,5 +1,6 @@
 module ImmosquareSlack
-  module Channel
+  module User
+    extend SharedMethods
     class << self
 
 
