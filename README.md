@@ -22,6 +22,23 @@ Or install it yourself as:
 $ gem install immosquare-slack
 ```
 
+## Configuration
+
+Before using `immosquare-slack`, you need to configure it with your Slack API token. Create an initializer file in your Ruby application (e.g., `config/initializers/immosquare_slack.rb`) with the following content:
+
+```ruby
+ImmosquareSlack.config do |config|
+  config.slack_api_token_bot = ENV.fetch("SLACK_API_TOKEN_BOT", nil)
+end
+```
+
+Replace `SLACK_API_TOKEN_BOT` with the actual environment variable where you store your Slack API token.
+
+Make sure to set this environment variable in your application's environment. This token will authenticate your API requests to Slack.
+
+**Note**: It is important to never hardcode your Slack API tokens within your application's codebase. Always use environment variables or other secure methods to keep your tokens confidential.
+
+
 ## Usage
 
 ### Channel Operations
@@ -46,19 +63,21 @@ ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_te
 
 - `channel_name`: String. The name of the Slack channel.
 
-- `text`: String. The primary text of the message to be posted in the channel.
+- `text`: String. The main content of the message.
 
-- `notify`: Optional. Specifies the users to be notified. It can be:
+- `notify`: Optional. A specifier for whom to notify. Accepts:
 
-  - An array of email addresses: Notifies specific users whose email addresses are provided with @name1, @name2
+  - An array of email addresses: Notifies specific users if their email is linked to their Slack user ID.
 
-  - `:channel`: Notifies all users in the channel with @channel
+  - `:channel`: Notifies all members of the channel.
 
-  - `:all`: Notifies all users in the Slack workspace. with @name1, @name2...
+  - `:here`: Notifies members currently active in the channel.
 
-- `notify_text`: Optional. Custom text that precedes the notification. If not provided, a default greeting like "Hello" is used.
+  - `:everyone`: Notifies every member of the workspace (use with caution).
 
-- `bot_name`: Optional. The name of the bot posting the message. If not provided, the default app name is used.
+- `notify_text`: Optional. Custom text that precedes the notification.
+
+- `bot_name`: Optional. Specifies the name of the bot posting the message.
 
 **Example**:
 
