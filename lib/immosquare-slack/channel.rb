@@ -3,7 +3,6 @@ module ImmosquareSlack
     extend SharedMethods
     class << self
 
-
       ##============================================================##
       ## Pour récupérer la liste des channels
       ##============================================================##
@@ -14,15 +13,16 @@ module ImmosquareSlack
       ##============================================================##
       ## Pour poster un message dans un channel
       ##============================================================##
-      def post_message(channel_name, text, notify: false, bot_name: nil)
+      def post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil)
         channel_id = get_channel_id_by_name(channel_name)
         raise("Channel not found") if channel_id.nil?
 
-
         url  = "https://slack.com/api/chat.postMessage"
+        text = "#{build_notification_text(channel_id, notify, notify_text) if notify.present?}#{text}"
+
         body = {
           :channel  => channel_id,
-          :text     => "#{build_notification_text(channel_id) if notify}#{text}",
+          :text     => text,
           :username => bot_name.presence
         }
         make_slack_api_call(url, :method => :post, :body => body)
@@ -52,10 +52,19 @@ module ImmosquareSlack
       ## Méthode récupérant les membres d'un channel et les notifier
       ## sur le message
       ##============================================================##
-      def build_notification_text(channel_id, text = "Hello")
-        members = get_channel_members(channel_id)
-        members = member_mentions = members.map {|member_id| "<@#{member_id}>" }
-        "#{text} #{member_mentions.join(", ")}\n"
+      def build_notification_text(channel_id, notify, text = "Hello")
+        final = if notify.is_a?(Array)
+                  members = ImmosquareSlack::User.list_users
+                  members = members.select {|m| m["profile"]["email"].in?(notify) }
+                  members.map {|m| "<@#{m["id"]}>" }.join(", ")
+                elsif notify.to_sym == :all
+                  members = get_channel_members(channel_id)
+                  members.map {|m| "<@#{m}>" }.join(", ")
+                elsif notify.to_sym == :channel
+                  "@channel"
+                end
+
+        "#{text} #{final}\n" if final.present?
       end
 
     end
