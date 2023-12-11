@@ -61,8 +61,13 @@ module ImmosquareSlack
                   members = get_channel_members(channel_id)
                   members.map {|m| "<@#{m}>" }.join(", ")
                 elsif notify.to_sym == :channel
-                  "@channel"
+                  "<!channel>"
+                elsif notify.to_sym == :here
+                  "<!here>"
+                elsif notify.to_sym == :everyone
+                  "<!everyone>"
                 end
+
 
         "#{text} #{final}\n" if final.present?
       end

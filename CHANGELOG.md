@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.1.2] - 2023-12-11
+
+- Fix notifications options (@channel, @here, @everyone)
+
 ## [0.1.1] - 2023-12-11
 
 - Improve notifications options
