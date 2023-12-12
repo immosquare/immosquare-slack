@@ -31,9 +31,8 @@ namespace :immosquare_slack do
     task :post_message do
       load_config
       ImmosquareSlack::Channel.post_message("test", "Je suis un test",
-        :notify_text => "Bonjour",
-        :notify      => "channel",
-        :bot_name    => "MyBot")
+        :notify   => "channel",
+        :bot_name => "MyBot")
     end
   end
 end

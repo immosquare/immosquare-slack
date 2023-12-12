@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.1.4] - 2023-12-12
+
+- Fix notifcation_text
+
 ## [0.1.3] - 2023-12-12
 
 - Fix bug with bot_name

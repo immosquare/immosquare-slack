@@ -18,7 +18,7 @@ module ImmosquareSlack
         raise("Channel not found") if channel_id.nil?
 
         url               = "https://slack.com/api/chat.postMessage"
-        notification_text = notify ? build_notification_text(channel_id, notify, notify_text) : nil
+        notification_text = notify ? build_notification_text(channel_id, notify, *notify_text) : nil
         text              = "#{notification_text}#{text}"
 
         body = {
