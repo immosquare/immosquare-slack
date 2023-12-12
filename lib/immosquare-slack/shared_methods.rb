@@ -1,3 +1,6 @@
+require "json"
+require "httparty"
+
 module ImmosquareSlack
   module SharedMethods
     private

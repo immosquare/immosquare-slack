@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [0.1.3] - 2023-12-12
+
+- Fix bug with bot_name
+
 ## [0.1.2] - 2023-12-11
 
 - Fix notifications options (@channel, @here, @everyone)

@@ -1,3 +1,4 @@
+require "yaml"
 require "immosquare-slack"
 
 namespace :immosquare_slack do
@@ -13,7 +14,7 @@ namespace :immosquare_slack do
       ##=============================================================##
       ## Load config keys from config_dev.yml
       ##=============================================================##
-      dev_config = ImmosquareSlack.parse(path)
+      dev_config = YAML.load_file(path)
       abort("Error config_dev.yml is empty") if dev_config.nil?
 
       ImmosquareSlack.config do |config|
@@ -27,9 +28,12 @@ namespace :immosquare_slack do
     ## Send Message to Sack Channel
     ##=============================================================##
     desc "Send Message to Sack Channel"
-    task :send_message do
+    task :post_message do
       load_config
-      ImmosquareSlack::Channel.send_message("test", "Hello World")
+      ImmosquareSlack::Channel.post_message("test", "Je suis un test",
+        :notify_text => "Bonjour",
+        :notify      => "channel",
+        :bot_name    => "MyBot")
     end
   end
 end
