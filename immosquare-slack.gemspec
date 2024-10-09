@@ -5,7 +5,7 @@ Gem::Specification.new do |spec|
   spec.license       = "MIT"
   spec.name          = "immosquare-slack"
   spec.version       = ImmosquareSlack::VERSION.dup
-  spec.authors       = ["IMMO SQUARE"]
+  spec.authors       = ["immosquare"]
   spec.email         = ["jules@immosquare.com"]
 
   spec.summary       = "A Ruby gem for integrating with Slack API to perform various actions like posting messages."
