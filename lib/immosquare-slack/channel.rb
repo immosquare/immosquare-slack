@@ -7,15 +7,29 @@ module ImmosquareSlack
       ## Pour récupérer la liste des channels
       ##============================================================##
       def list_channels
-        fetch_paginated_data("https://slack.com/api/conversations.list", "channels")
+        @list_channels ||= begin
+          extra_params = {
+            :types            => ["public_channel", "private_channel"].join(","),
+            :exclude_archived => false
+          }
+          fetch_paginated_data("https://slack.com/api/conversations.list", "channels", extra_params)
+        end
       end
 
       ##============================================================##
       ## Pour poster un message dans un channel
       ##============================================================##
-      def post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil)
+      def post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
         channel_id = get_channel_id_by_name(channel_name)
-        raise("Channel #{channel_name} not found on slack") if channel_id.nil?
+
+        if channel_id.nil?
+          text = "immosquare-slack missing channel:
+          - channel: *#{channel_name}*
+          - message:\n#{text}"
+          return post_message("general", text, :notify => :channel, :notify_text => nil, :bot_name => bot_name, :notify_general_if_invalid_channel => false) if channel_name != "general" && notify_general_if_invalid_channel
+
+          raise("channel '#{channel_name}' not found on slack")
+        end
 
         url               = "https://slack.com/api/chat.postMessage"
         notification_text = notify ? build_notification_text(channel_id, notify, *notify_text) : nil
@@ -40,7 +54,7 @@ module ImmosquareSlack
       ##============================================================##
       def get_channel_id_by_name(channel_name)
         channels = list_channels
-        channel = channels.find {|c| c["name"] == channel_name }
+        channel  = channels.find {|c| channel_name == "general" ? c["is_general"] == true : (c["name"] == channel_name && c["is_archived"] == false) }
         channel ? channel["id"] : nil
       end
 
