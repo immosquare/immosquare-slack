@@ -23,10 +23,8 @@ module ImmosquareSlack
         channel_id = get_channel_id_by_name(channel_name)
 
         if channel_id.nil?
-          text = "immosquare-slack missing channel:
-          - channel: *#{channel_name}*
-          - message:\n#{text}"
-          return post_message("general", text, :notify => :channel, :notify_text => nil, :bot_name => bot_name, :notify_general_if_invalid_channel => false) if channel_name != "general" && notify_general_if_invalid_channel
+          text = "immosquare-slack missing channel *#{channel_name}*\nmessage:\n#{text}"
+          return post_message("general", text, :notify => :channel, :notify_text => "", :bot_name => bot_name, :notify_general_if_invalid_channel => false) if channel_name != "general" && notify_general_if_invalid_channel
 
           raise("channel '#{channel_name}' not found on slack")
         end
@@ -55,7 +53,7 @@ module ImmosquareSlack
       def get_channel_id_by_name(channel_name)
         channels = list_channels
         channel  = channels.find {|c| channel_name == "general" ? c["is_general"] == true : (c["name"] == channel_name && c["is_archived"] == false) }
-        channel ? channel["id"] : nil
+        channel.present? ? channel["id"] : nil
       end
 
       ##============================================================##
