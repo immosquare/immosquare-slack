@@ -1,3 +1,6 @@
+## [0.1.6] - 2024-12-11
+- Add new param notify_general_if_invalid_channel (default: true) to notify general channel if the channel is invalid
+
 ## [0.1.5] - 2024-12-11
 - Improve raise message
 
