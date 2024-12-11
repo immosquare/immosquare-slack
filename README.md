@@ -49,7 +49,7 @@ ImmosquareSlack::Channel.list_channels
 Post a message to a specific channel. You can customize the message by using the following parameters:
 
 ```ruby
-ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil)
+ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
 ```
 
 **Parameters**:
@@ -68,9 +68,11 @@ ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_te
 
   - `:everyone`: Notifies every member of the workspace (use with caution).
 
-- `notify_text`: Optional. Custom text that precedes the notification.
+- `notify_text`: Optional. Custom text that precedes the notification. (default : "Hello")
 
 - `bot_name`: Optional. Specifies the name of the bot posting the message.
+
+- `notify_general_if_invalid_channel`: Optional. If the channel is invalid, notify the general channel. (default : true)
 
 **Example**:
 
