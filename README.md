@@ -10,33 +10,26 @@ Add this line to your application's Gemfile:
 gem 'immosquare-slack'
 ```
 
-Then execute:
-
-```bash
-$ bundle install
-```
-
-Or install it yourself as:
-
-```bash
-$ gem install immosquare-slack
-```
-
 ## Configuration
 
 Before using `immosquare-slack`, you need to configure it with your Slack API token. Create an initializer file in your Ruby application (e.g., `config/initializers/immosquare_slack.rb`) with the following content:
 
 ```ruby
 ImmosquareSlack.config do |config|
-  config.slack_api_token_bot = ENV.fetch("SLACK_API_TOKEN_BOT", nil)
+  config.slack_api_token_bot = ENV.fetch("slack_api_token_bot", nil)
 end
 ```
+To get your Slack API token, follow these steps:
 
-Replace `SLACK_API_TOKEN_BOT` with the actual environment variable where you store your Slack API token.
+* Go to the [Slack API website](https://api.slack.com/).
 
-Make sure to set this environment variable in your application's environment. This token will authenticate your API requests to Slack.
+* Click on "Create New App".
 
-**Note**: It is important to never hardcode your Slack API tokens within your application's codebase. Always use environment variables or other secure methods to keep your tokens confidential.
+* Fill in the required information and click on "Create App".
+
+* In the "OAuth & Permissions" section, you will find your API token.
+
+* Be sure to add the following scopes to your app: `channels:read`, `chat:write`, `users:read`, `groups:read` in the Bot Token Scopes section.
 
 
 ## Usage

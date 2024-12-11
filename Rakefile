@@ -25,7 +25,7 @@ namespace :immosquare_slack do
 
 
     ##=============================================================##
-    ## Send Message to Sack Channel
+    ## rake immosquare_slack:sample:post_message
     ##=============================================================##
     desc "Send Message to Sack Channel"
     task :post_message do

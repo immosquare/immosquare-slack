@@ -13,12 +13,11 @@ module ImmosquareSlack
       cursor = nil
 
       loop do
-        query = cursor ? {:cursor => cursor}.merge(extra_query) : extra_query
+        query    = cursor ? {:cursor => cursor}.merge(extra_query) : extra_query
         response = make_slack_api_call(url, :query => query)
-
+        cursor   = response.dig("response_metadata", "next_cursor")
 
         items.concat(response[data_key])
-        cursor = response.dig("response_metadata", "next_cursor")
         break if cursor.nil? || cursor.empty?
       end
       items
@@ -40,7 +39,7 @@ module ImmosquareSlack
       ##============================================================##
       ## On crée les options en fonction du cas de figure
       ##============================================================##
-      options[:query] = query if query.any?
+      options[:query] = query        if query.any?
       options[:body]  = body.to_json if body
 
       ##============================================================##
@@ -48,7 +47,7 @@ module ImmosquareSlack
       ##============================================================##
       response        = HTTParty.send(method, url, options)
       parsed_response = JSON.parse(response.body)
-      raise(parsed_response.to_json) unless parsed_response["ok"]
+      raise(parsed_response.to_json) if !parsed_response["ok"]
 
       parsed_response
     rescue JSON::ParserError
