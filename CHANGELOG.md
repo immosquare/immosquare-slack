@@ -1,3 +1,6 @@
+## [0.1.5] - 2024-12-11
+- Improve raise message
+
 ## [0.1.4] - 2023-12-12
 - Fix notifcation_text
 

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    immosquare-slack (0.1.4)
+    immosquare-slack (0.1.5)
       httparty (~> 0)
 
 GEM
