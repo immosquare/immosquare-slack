@@ -15,7 +15,7 @@ module ImmosquareSlack
       ##============================================================##
       def post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil)
         channel_id = get_channel_id_by_name(channel_name)
-        raise("Channel not found") if channel_id.nil?
+        raise("Channel #{channel_name} not found on slack") if channel_id.nil?
 
         url               = "https://slack.com/api/chat.postMessage"
         notification_text = notify ? build_notification_text(channel_id, notify, *notify_text) : nil
