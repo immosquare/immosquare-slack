@@ -1,3 +1,5 @@
 *.gem
 /spec/output
 config_dev.yml
+.vscode/extensions.json
+.vscode/settings.json
