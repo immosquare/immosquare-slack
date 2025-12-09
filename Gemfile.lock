@@ -58,7 +58,7 @@ GEM
       multi_xml (>= 0.5.2)
     i18n (1.14.7)
       concurrent-ruby (~> 1.0)
-    immosquare-cleaner (0.1.95)
+    immosquare-cleaner (0.1.96)
       erb_lint (>= 0.7, <= 1000.0)
       htmlbeautifier (>= 1.4, <= 1000.0)
       immosquare-extensions (>= 0.1, <= 1000.0)
