@@ -1,3 +1,9 @@
 *.gem
 /spec/output
 config_dev.yml
+
+##============================================================##
+## Claude personal settings
+##============================================================##
+/.claude/settings.local.json
+
