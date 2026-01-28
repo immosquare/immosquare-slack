@@ -4,10 +4,8 @@ Easily interact with the Slack API from your Ruby applications. This gem allows 
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
 ```ruby
-gem 'immosquare-slack'
+gem "immosquare-slack"
 ```
 
 ## Configuration
