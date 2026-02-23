@@ -66,6 +66,8 @@ ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_te
 
   - `:everyone`: Notifies every member of the workspace (use with caution).
 
+  - `:all`: Notifies all members of the channel individually (mentions each user).
+
 - `notify_text`: Optional. Custom text that precedes the notification. (default : "Hello")
 
 - `bot_name`: Optional. Specifies the name of the bot posting the message.
