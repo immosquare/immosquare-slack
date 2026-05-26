@@ -1,3 +1,10 @@
+## [0.2.0] - 2026-05-26
+- **BREAKING**: `Channel.post_message` now takes `text` as the only positional argument; `channel_name` becomes a keyword argument (`post_message(text, channel_name: ...)`)
+- Add `default_channel` and `default_bot_name` configuration options, used as fallback when `channel_name` / `bot_name` are omitted
+- Raise `ArgumentError` when no channel can be resolved (instead of a cryptic Slack API error)
+- Fix leading space in the notification prefix when the prefix text is empty
+- Use `public_send` instead of `send` for the HTTParty request dispatch
+
 ## [0.1.6] - 2024-12-11
 - Add new param notify_general_if_invalid_channel (default: true) to notify general channel if the channel is invalid
 
