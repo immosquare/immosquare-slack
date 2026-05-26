@@ -1,10 +1,15 @@
 module ImmosquareSlack
   module Channel
     extend SharedMethods
+
+    GENERAL_CHANNEL = "general".freeze
+
     class << self
 
       ##============================================================##
-      ## Pour récupérer la liste des channels
+      ## Fetches the list of channels (public + private, including
+      ## archived). Memoized per process — call sites that need a
+      ## fresh list should reset @list_channels explicitly.
       ##============================================================##
       def list_channels
         @list_channels ||= begin
@@ -17,14 +22,29 @@ module ImmosquareSlack
       end
 
       ##============================================================##
-      ## Pour poster un message dans un channel
+      ## Posts a message to a channel.
+      ##
+      ## `channel_name` and `bot_name` are optional keyword args:
+      ## if nil, they fall back to the global config
+      ## `ImmosquareSlack.configuration.default_channel` and
+      ## `default_bot_name`. Lets apps that always notify the same
+      ## channel avoid repeating the value at every call site.
+      ##
+      ## If no channel can be resolved after fallback, raises an
+      ## ArgumentError immediately (clearer than the cryptic error
+      ## returned by the Slack API).
       ##============================================================##
-      def post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
+      def post_message(text, channel_name: nil, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
+        channel_name ||= ImmosquareSlack.configuration.default_channel
+        bot_name     ||= ImmosquareSlack.configuration.default_bot_name
+
+        raise(ArgumentError, "channel_name is required (or set ImmosquareSlack.configuration.default_channel)") if channel_name.nil?
+
         channel_id = get_channel_id_by_name(channel_name)
 
         if channel_id.nil?
           text = "immosquare-slack missing channel *#{channel_name}*\nmessage:\n#{text}"
-          return post_message("general", text, :notify => :channel, :notify_text => "", :bot_name => bot_name, :notify_general_if_invalid_channel => false) if channel_name != "general" && notify_general_if_invalid_channel
+          return post_message(text, :channel_name => GENERAL_CHANNEL, :notify => :channel, :notify_text => "", :bot_name => bot_name, :notify_general_if_invalid_channel => false) if channel_name != GENERAL_CHANNEL && notify_general_if_invalid_channel
 
           raise("channel '#{channel_name}' not found on slack")
         end
@@ -43,32 +63,41 @@ module ImmosquareSlack
         make_slack_api_call(url, :method => :post, :body => body)
       end
 
-
-
       private
 
       ##============================================================##
-      ## Pour récupérer l'id d'un channel en fonction de son nom
+      ## Resolves a channel id from its name. "general" is matched
+      ## via the `is_general` flag because workspaces can rename
+      ## their general channel.
       ##============================================================##
       def get_channel_id_by_name(channel_name)
         channels = list_channels
-        channel  = channels.find {|c| channel_name == "general" ? c["is_general"] == true : (c["name"] == channel_name && c["is_archived"] == false) }
-        channel.present? ? channel["id"] : nil
+        channel  = channels.find do |c|
+          if channel_name == GENERAL_CHANNEL
+            c["is_general"]
+          else
+            c["name"] == channel_name && c["is_archived"] == false
+          end
+        end
+        channel.nil? ? nil : channel["id"]
       end
 
       ##============================================================##
-      ## Pour récupérer la liste des membres d'un channel
+      ## Fetches the list of members of a channel.
       ##============================================================##
       def get_channel_members(channel_id)
         fetch_paginated_data("https://slack.com/api/conversations.members", "members", {:channel => channel_id})
       end
 
       ##============================================================##
-      ## Méthode récupérant les membres d'un channel et les notifier
-      ## sur le message
-      ## on ne peut pas utilser in? si on veut que la gem soit
-      ## compatible avec ruby (sans rails)
-      ## pareil pour present?
+      ## Builds the notification prefix prepended to the message
+      ## body. `notify` may be:
+      ##   - an Array of emails: mentions matching workspace members
+      ##   - :all                : mentions every member of the channel
+      ##   - :channel/:here/:everyone : Slack-wide broadcast tokens
+      ##
+      ## Note: avoids `in?` and `present?` so the gem stays usable
+      ## from plain Ruby (no Rails / ActiveSupport required).
       ##============================================================##
       def build_notification_text(channel_id, notify, text = "Hello")
         final =
@@ -87,8 +116,9 @@ module ImmosquareSlack
             "<!everyone>"
           end
 
+        return nil if final.to_s.empty?
 
-        "#{text} #{final}\n" if !final.to_s.empty?
+        text.empty? ? "#{final}\n" : "#{text} #{final}\n"
       end
 
     end

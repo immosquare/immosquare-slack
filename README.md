@@ -23,6 +23,13 @@ Before using `immosquare-slack`, you need to configure it with your Slack API to
 ```ruby
 ImmosquareSlack.config do |config|
   config.slack_api_token_bot = ENV.fetch("slack_api_token_bot", nil)
+
+  # Optional — used as fallback when `channel_name` / `bot_name`
+  # are not passed to `Channel.post_message`. Lets apps that
+  # always notify the same channel avoid repeating the value
+  # at every call site.
+  config.default_channel  = "dev-team-monitoring"
+  config.default_bot_name = "immosquare bot"
 end
 ```
 To get your Slack API token, follow these steps:
@@ -55,14 +62,14 @@ ImmosquareSlack::Channel.list_channels
 Post a message to a specific channel. You can customize the message by using the following parameters:
 
 ```ruby
-ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
+ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
 ```
 
 **Parameters**:
 
-- `channel_name`: String. The name of the Slack channel.
-
 - `text`: String. The main content of the message.
+
+- `channel_name`: Optional keyword. The name of the Slack channel. If `nil` (or omitted), falls back to `ImmosquareSlack.configuration.default_channel`. Raises `ArgumentError` if no channel can be resolved.
 
 - `notify`: Optional. A specifier for whom to notify. Accepts:
 
@@ -78,7 +85,7 @@ ImmosquareSlack::Channel.post_message(channel_name, text, notify: nil, notify_te
 
 - `notify_text`: Optional. Custom text that precedes the notification. (default : "Hello")
 
-- `bot_name`: Optional. Specifies the name of the bot posting the message.
+- `bot_name`: Optional. Specifies the name of the bot posting the message. If `nil`, falls back to `ImmosquareSlack.configuration.default_bot_name`.
 
 - `notify_general_if_invalid_channel`: Optional. If the channel is invalid, notify the general channel. (default : true)
 
@@ -88,8 +95,8 @@ Using the `post_message` method, you can post a message in a Slack channel and c
 
 ```ruby
 ImmosquareSlack::Channel.post_message(
-  "test",
   "This is a test message",
+  channel_name: "test",
   notify: ["jonhDoe@mail.com"],
   notify_text: "Attention please",
   bot_name: "My Bot"
@@ -112,8 +119,13 @@ In the above message:
 
 - The message will appear to be posted by the bot named "My Bot".
 
+**Shorthand with defaults**:
 
+If `default_channel` and `default_bot_name` are set in the configuration, you can omit them:
 
+```ruby
+ImmosquareSlack::Channel.post_message("This is a test message", notify: :channel)
+```
 
 ### User Operations
 
