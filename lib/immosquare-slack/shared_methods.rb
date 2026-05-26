@@ -6,7 +6,7 @@ module ImmosquareSlack
     private
 
     ##============================================================##
-    ## On récupère tous les résultats avec une loop sur le cursor
+    ## Fetches all results by looping on the Slack API cursor.
     ##============================================================##
     def fetch_paginated_data(url, data_key, extra_query = {})
       items  = []
@@ -24,9 +24,9 @@ module ImmosquareSlack
     end
 
     ##============================================================##
-    ## On fait le call à l'API Slack. On raise le message entier
-    ## en string si la réponse n'est pas "ok" ou si la réponse
-    ## n'est pas un JSON valide.
+    ## Calls the Slack API. Raises the full response body as a
+    ## string if the response is not "ok" or if the body is not
+    ## valid JSON.
     ##============================================================##
     def make_slack_api_call(url, method: :get, query: {}, body: nil)
       options = {
@@ -37,15 +37,15 @@ module ImmosquareSlack
       }
 
       ##============================================================##
-      ## On crée les options en fonction du cas de figure
+      ## Builds the request options based on the call type.
       ##============================================================##
       options[:query] = query        if query.any?
       options[:body]  = body.to_json if body
 
       ##============================================================##
-      ## On send la requête et on parse la réponse
+      ## Sends the request and parses the response.
       ##============================================================##
-      response        = HTTParty.send(method, url, options)
+      response        = HTTParty.public_send(method, url, options)
       parsed_response = JSON.parse(response.body)
       raise(parsed_response.to_json) if !parsed_response["ok"]
 
