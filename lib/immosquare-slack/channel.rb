@@ -8,10 +8,17 @@ module ImmosquareSlack
 
       ##============================================================##
       ## Fetches the list of channels (public + private, including
-      ## archived). Memoized per process — call sites that need a
-      ## fresh list should reset @list_channels explicitly.
+      ## archived), memoized per process for the lifetime of that
+      ## process (a Puma worker or Sidekiq runs for hours/days).
+      ##
+      ## Piège : le cache ne reflète que l'état du workspace au
+      ## premier appel. Un channel créé ou renommé ensuite n'y est
+      ## pas. `force: true` vide le cache et refetch — à utiliser sur
+      ## un miss de lookup pour distinguer un channel réellement
+      ## absent d'un cache périmé avant tout fallback.
       ##============================================================##
-      def list_channels
+      def list_channels(force: false)
+        @list_channels = nil if force
         @list_channels ||= begin
           extra_params = {
             :types            => ["public_channel", "private_channel"].join(","),
@@ -40,7 +47,13 @@ module ImmosquareSlack
 
         raise(ArgumentError, "channel_name is required (or set ImmosquareSlack.configuration.default_channel)") if channel_name.nil?
 
+        ##============================================================##
+        ## A miss can mean the channel really doesn't exist, or that
+        ## the memoized list predates its creation. Retry once on a
+        ## freshly fetched list before declaring it missing.
+        ##============================================================##
         channel_id = get_channel_id_by_name(channel_name)
+        channel_id = get_channel_id_by_name(channel_name, :force => true) if channel_id.nil?
 
         if channel_id.nil?
           text = "immosquare-slack missing channel *#{channel_name}*\nmessage:\n#{text}"
@@ -70,8 +83,8 @@ module ImmosquareSlack
       ## via the `is_general` flag because workspaces can rename
       ## their general channel.
       ##============================================================##
-      def get_channel_id_by_name(channel_name)
-        channels = list_channels
+      def get_channel_id_by_name(channel_name, force: false)
+        channels = list_channels(:force => force)
         channel  = channels.find do |c|
           if channel_name == GENERAL_CHANNEL
             c["is_general"]
@@ -79,7 +92,7 @@ module ImmosquareSlack
             c["name"] == channel_name && c["is_archived"] == false
           end
         end
-        channel.nil? ? nil : channel["id"]
+        channel&.[]("id")
       end
 
       ##============================================================##
