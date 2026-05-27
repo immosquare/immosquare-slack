@@ -67,27 +67,24 @@ ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, noti
 
 **Parameters**:
 
-- `text`: String. The main content of the message.
+| Parameter                           | Required | Default                                          | Description                                                                                         |
+| ----------------------------------- | -------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `text`                              | Yes      | —                                                | The main content of the message.                                                                    |
+| `channel_name`                      | No       | `ImmosquareSlack.configuration.default_channel`  | The name of the Slack channel. Raises `ArgumentError` if no channel can be resolved after fallback. |
+| `notify`                            | No       | `nil`                                            | Who to notify (see accepted values below).                                                          |
+| `notify_text`                       | No       | `"Hello"`                                        | Custom text that precedes the notification.                                                         |
+| `bot_name`                          | No       | `ImmosquareSlack.configuration.default_bot_name` | Name of the bot posting the message.                                                                |
+| `notify_general_if_invalid_channel` | No       | `true`                                           | If the channel is invalid, notify the general channel.                                              |
 
-- `channel_name`: Optional keyword. The name of the Slack channel. If `nil` (or omitted), falls back to `ImmosquareSlack.configuration.default_channel`. Raises `ArgumentError` if no channel can be resolved.
+**Accepted values for `notify`**:
 
-- `notify`: Optional. A specifier for whom to notify. Accepts:
-
-  - An array of email addresses: Notifies specific users if their email is linked to their Slack user ID.
-
-  - `:channel`: Notifies all members of the channel.
-
-  - `:here`: Notifies members currently active in the channel.
-
-  - `:everyone`: Notifies every member of the workspace (use with caution).
-
-  - `:all`: Notifies all members of the channel individually (mentions each user).
-
-- `notify_text`: Optional. Custom text that precedes the notification. (default : "Hello")
-
-- `bot_name`: Optional. Specifies the name of the bot posting the message. If `nil`, falls back to `ImmosquareSlack.configuration.default_bot_name`.
-
-- `notify_general_if_invalid_channel`: Optional. If the channel is invalid, notify the general channel. (default : true)
+| Value           | Behavior                                                                 |
+| --------------- | ------------------------------------------------------------------------ |
+| Array of emails | Notifies specific users if their email is linked to their Slack user ID. |
+| `:channel`      | Notifies all members of the channel.                                     |
+| `:here`         | Notifies members currently active in the channel.                        |
+| `:everyone`     | Notifies every member of the workspace (use with caution).               |
+| `:all`          | Notifies all members of the channel individually (mentions each user).   |
 
 **Example**:
 
