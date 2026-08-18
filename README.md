@@ -1,3 +1,10 @@
+---
+locale: en
+tags:
+  - app:immosquare-slack
+  - audience:technique
+---
+
 # Immosquare Slack
 
 Easily interact with the Slack API from your Ruby applications. This gem allows you to perform actions such as posting messages to channels, fetching user lists, and more.
