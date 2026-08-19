@@ -11,6 +11,8 @@ Easily interact with the Slack API from your Ruby applications. This gem allows 
 
 ## Installation
 
+Requires Ruby >= 3.2.6.
+
 Add this line to your Gemfile:
 
 ```ruby
@@ -30,15 +32,19 @@ Before using `immosquare-slack`, you need to configure it with your Slack API to
 ```ruby
 ImmosquareSlack.config do |config|
   config.slack_api_token_bot = ENV.fetch("slack_api_token_bot", nil)
-
-  # Optional — used as fallback when `channel_name` / `bot_name`
-  # are not passed to `Channel.post_message`. Lets apps that
-  # always notify the same channel avoid repeating the value
-  # at every call site.
-  config.default_channel  = "dev-team-monitoring"
-  config.default_bot_name = "immosquare bot"
+  config.default_channel     = "dev-team-monitoring"
+  config.default_bot_name    = "immosquare bot"
 end
 ```
+
+| Option                | Type   | Default | Description                                                                          |
+| --------------------- | ------ | ------- | ------------------------------------------------------------------------------------ |
+| `slack_api_token_bot` | String | `nil`   | Bot token sent as `Authorization: Bearer` on every API call.                          |
+| `default_channel`     | String | `nil`   | Channel used when `channel_name` is not passed to `Channel.post_message`.             |
+| `default_bot_name`    | String | `nil`   | Bot display name used when `bot_name` is not passed to `Channel.post_message`.        |
+
+The two defaults let an application that always notifies the same channel avoid repeating the value at every call site.
+
 To get your Slack API token, follow these steps:
 
 * Go to the [Slack API website](https://api.slack.com/).
@@ -58,10 +64,16 @@ To get your Slack API token, follow these steps:
 
 #### List Channels
 
-Retrieve a list of all channels.
+Retrieve every channel of the workspace — public and private, archived included.
 
 ```ruby
 ImmosquareSlack::Channel.list_channels
+```
+
+The result is memoized for the lifetime of the process, so a long-running Puma worker or Sidekiq process keeps serving the list it fetched on its first call. A channel created or renamed afterwards is absent from it. Pass `force: true` to drop the cache and refetch:
+
+```ruby
+ImmosquareSlack::Channel.list_channels(force: true)
 ```
 
 #### Post a Message
@@ -81,7 +93,7 @@ ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, noti
 | `notify`                            | No       | `nil`                                            | Who to notify (see accepted values below).                                                          |
 | `notify_text`                       | No       | `"Hello"`                                        | Custom text that precedes the notification.                                                         |
 | `bot_name`                          | No       | `ImmosquareSlack.configuration.default_bot_name` | Name of the bot posting the message.                                                                |
-| `notify_general_if_invalid_channel` | No       | `true`                                           | If the channel is invalid, notify the general channel.                                              |
+| `notify_general_if_invalid_channel` | No       | `true`                                           | If the channel cannot be resolved, post to the general channel instead of raising (see below).       |
 
 **Accepted values for `notify`**:
 
@@ -131,6 +143,15 @@ If `default_channel` and `default_bot_name` are set in the configuration, you ca
 ImmosquareSlack::Channel.post_message("This is a test message", notify: :channel)
 ```
 
+**When the channel cannot be resolved**:
+
+A lookup miss can mean the channel does not exist, or that the memoized channel list predates its creation. `post_message` refetches the list once before concluding. If the channel is still not found:
+
+- with `notify_general_if_invalid_channel: true` (the default), the message goes to the general channel instead, prefixed with `immosquare-slack missing channel *<channel_name>*` and notifying `@channel`;
+- with `notify_general_if_invalid_channel: false`, a `RuntimeError` is raised.
+
+The general channel is matched on Slack's `is_general` flag rather than on its name, so a workspace that renamed it is still handled.
+
 ### User Operations
 
 #### List Users
@@ -141,9 +162,37 @@ Get a list of all users.
 ImmosquareSlack::User.list_users
 ```
 
+## Error Handling
+
+| Situation                                                                   | Raised                                                       |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `channel_name` omitted and `default_channel` unset                          | `ArgumentError`                                              |
+| Channel not found and `notify_general_if_invalid_channel: false`             | `RuntimeError`, `channel '<name>' not found on slack`         |
+| Slack answers with `"ok": false`                                            | `RuntimeError` carrying the full response body as JSON       |
+| Slack answers with a body that is not valid JSON                            | `RuntimeError`, `Invalid JSON response`                      |
+
+Apart from the single channel-list refetch described above, nothing is retried and no error is swallowed. Wrap the call when a failed notification must not break the caller:
+
+```ruby
+begin
+  ImmosquareSlack::Channel.post_message("Nightly import finished", channel_name: "monitoring")
+rescue StandardError => e
+  Rails.logger.error("slack notification failed: #{e.message}")
+end
+```
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at [https://github.com/immosquare/immosquare-slack](https://github.com/immosquare/immosquare-slack). This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [contributor covenant code of conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+
+Run the test suite before opening a pull request:
+
+```bash
+bundle install
+bundle exec rspec
+```
+
+`bin/ci test` runs that same suite the way Jenkins does. With `COVERAGE=true` it also writes an LCOV report to `coverage/lcov.info`.
 
 ## License
 
