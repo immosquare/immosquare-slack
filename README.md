@@ -5,11 +5,11 @@ tags:
   - audience:technique
 ---
 
-# Immosquare Slack
+# immosquare-slack
 
-Easily interact with the Slack API from your Ruby applications. This gem allows you to perform actions such as posting messages to channels, fetching user lists, and more.
+`immosquare-slack` lets a Ruby application interact with the Slack API: posting messages to channels, fetching user lists, and more. This page covers installing the gem, configuring the Slack bot token it authenticates with, the `ImmosquareSlack::Channel` and `ImmosquareSlack::User` methods it exposes, and the errors those methods raise. It requires Ruby >= 3.2.6 and a Slack app whose bot token carries the `channels:read`, `chat:write`, `users:read` and `groups:read` scopes.
 
-## Installation
+## Installing immosquare-slack and configuring the Slack API token
 
 Requires Ruby >= 3.2.6.
 
@@ -25,8 +25,6 @@ Then execute:
 bundle install
 ```
 
-## Configuration
-
 Before using `immosquare-slack`, you need to configure it with your Slack API token. Create an initializer file in your Ruby application (e.g., `config/initializers/immosquare_slack.rb`) with the following content:
 
 ```ruby
@@ -36,6 +34,8 @@ ImmosquareSlack.config do |config|
   config.default_bot_name    = "immosquare bot"
 end
 ```
+
+`ImmosquareSlack.config` accepts three options — the token used to authenticate, and two values that act as fallbacks when a call omits them:
 
 | Option                | Type   | Default | Description                                                                          |
 | --------------------- | ------ | ------- | ------------------------------------------------------------------------------------ |
@@ -57,14 +57,9 @@ To get your Slack API token, follow these steps:
 
 * Be sure to add the following scopes to your app: `channels:read`, `chat:write`, `users:read`, `groups:read` in the Bot Token Scopes section.
 
+## Listing the channels and the users of the workspace
 
-## Usage
-
-### Channel Operations
-
-#### List Channels
-
-Retrieve every channel of the workspace — public and private, archived included.
+`ImmosquareSlack::Channel.list_channels` retrieves every channel of the workspace — public and private, archived included.
 
 ```ruby
 ImmosquareSlack::Channel.list_channels
@@ -76,9 +71,15 @@ The result is memoized for the lifetime of the process, so a long-running Puma w
 ImmosquareSlack::Channel.list_channels(force: true)
 ```
 
-#### Post a Message
+`ImmosquareSlack::User.list_users` gets a list of all users.
 
-Post a message to a specific channel. You can customize the message by using the following parameters:
+```ruby
+ImmosquareSlack::User.list_users
+```
+
+## Posting a message with ImmosquareSlack::Channel.post_message
+
+`ImmosquareSlack::Channel.post_message` posts a message to a specific channel. You can customize the message by using the following parameters:
 
 ```ruby
 ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
@@ -113,7 +114,7 @@ Using the `post_message` method, you can post a message in a Slack channel and c
 ImmosquareSlack::Channel.post_message(
   "This is a test message",
   channel_name: "test",
-  notify: ["jonhDoe@mail.com"],
+  notify: ["johnDoe@mail.com"],
   notify_text: "Attention please",
   bot_name: "My Bot"
 )
@@ -127,7 +128,7 @@ This is a test message
 ```
 
 In the above message:
-- `<@johnDoe>` is a placeholder that Slack will automatically convert to a mention of the user associated with the email "jonhDoe@mail.com".
+- `<@johnDoe>` is a placeholder that Slack will automatically convert to a mention of the user associated with the email "johnDoe@mail.com".
 
 - "Attention please" is the custom notification text provided in `notify_text`.
 
@@ -152,17 +153,9 @@ A lookup miss can mean the channel does not exist, or that the memoized channel 
 
 The general channel is matched on Slack's `is_general` flag rather than on its name, so a workspace that renamed it is still handled.
 
-### User Operations
+## Errors raised by immosquare-slack
 
-#### List Users
-
-Get a list of all users.
-
-```ruby
-ImmosquareSlack::User.list_users
-```
-
-## Error Handling
+Four situations make an `immosquare-slack` call raise — two when `Channel.post_message` cannot resolve a channel, two when Slack answers something the gem cannot use:
 
 | Situation                                                                   | Raised                                                       |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -171,7 +164,7 @@ ImmosquareSlack::User.list_users
 | Slack answers with `"ok": false`                                            | `RuntimeError` carrying the full response body as JSON       |
 | Slack answers with a body that is not valid JSON                            | `RuntimeError`, `Invalid JSON response`                      |
 
-Apart from the single channel-list refetch described above, nothing is retried and no error is swallowed. Wrap the call when a failed notification must not break the caller:
+Apart from the single channel-list refetch that `post_message` performs before declaring a channel missing, nothing is retried and no error is swallowed. Wrap the call when a failed notification must not break the caller:
 
 ```ruby
 begin
@@ -181,7 +174,7 @@ rescue StandardError => e
 end
 ```
 
-## Contributing
+## Contributing to immosquare-slack and license
 
 Bug reports and pull requests are welcome on GitHub at [https://github.com/immosquare/immosquare-slack](https://github.com/immosquare/immosquare-slack). This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [contributor covenant code of conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 
@@ -193,7 +186,5 @@ bundle exec rspec
 ```
 
 `bin/ci test` runs that same suite the way Jenkins does. With `COVERAGE=true` it also writes an LCOV report to `coverage/lcov.info`.
-
-## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
