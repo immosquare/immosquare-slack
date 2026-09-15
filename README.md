@@ -185,6 +185,6 @@ bundle install
 bundle exec rspec
 ```
 
-`bin/ci test` runs that same suite the way Jenkins does. With `COVERAGE=true` it also writes an LCOV report to `coverage/lcov.info`.
+`bin/ci test` runs that same suite the way the CI does, and `bin/ci` alone chains the install and the suite. Coverage is on unless `COVERAGE` says otherwise, writing an LCOV report to `coverage/lcov.info`.
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
