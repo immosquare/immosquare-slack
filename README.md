@@ -39,9 +39,9 @@ end
 
 | Option                | Type   | Default | Description                                                                          |
 | --------------------- | ------ | ------- | ------------------------------------------------------------------------------------ |
-| `slack_api_token_bot` | String | `nil`   | Bot token sent as `Authorization: Bearer` on every API call.                          |
-| `default_channel`     | String | `nil`   | Channel used when `channel_name` is not passed to `Channel.post_message`.             |
-| `default_bot_name`    | String | `nil`   | Bot display name used when `bot_name` is not passed to `Channel.post_message`.        |
+| `slack_api_token_bot` | String | `nil`   | Bot token sent as `Authorization: Bearer` on every API call.                         |
+| `default_channel`     | String | `nil`   | Channel used when `channel_name` is not passed to `Channel.post_message`.            |
+| `default_bot_name`    | String | `nil`   | Bot display name used when `bot_name` is not passed to `Channel.post_message`.       |
 
 The two defaults let an application that always notifies the same channel avoid repeating the value at every call site.
 
@@ -94,7 +94,7 @@ ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, noti
 | `notify`                            | No       | `nil`                                            | Who to notify (see accepted values below).                                                          |
 | `notify_text`                       | No       | `"Hello"`                                        | Custom text that precedes the notification.                                                         |
 | `bot_name`                          | No       | `ImmosquareSlack.configuration.default_bot_name` | Name of the bot posting the message.                                                                |
-| `notify_general_if_invalid_channel` | No       | `true`                                           | If the channel cannot be resolved, post to the general channel instead of raising (see below).       |
+| `notify_general_if_invalid_channel` | No       | `true`                                           | If the channel cannot be resolved, post to the general channel instead of raising (see below).      |
 
 **Accepted values for `notify`**:
 
@@ -160,7 +160,7 @@ Four situations make an `immosquare-slack` call raise — two when `Channel.post
 | Situation                                                                   | Raised                                                       |
 | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | `channel_name` omitted and `default_channel` unset                          | `ArgumentError`                                              |
-| Channel not found and `notify_general_if_invalid_channel: false`             | `RuntimeError`, `channel '<name>' not found on slack`         |
+| Channel not found and `notify_general_if_invalid_channel: false`            | `RuntimeError`, `channel '<name>' not found on slack`        |
 | Slack answers with `"ok": false`                                            | `RuntimeError` carrying the full response body as JSON       |
 | Slack answers with a body that is not valid JSON                            | `RuntimeError`, `Invalid JSON response`                      |
 

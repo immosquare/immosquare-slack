@@ -13,12 +13,12 @@ bundle exec rake immosquare_slack:sample:post_message  # requiert config_dev.yml
 
 Namespace `ImmosquareSlack` avec modules qui étendent `SharedMethods` :
 
-| Module | Rôle |
-|--------|------|
-| Configuration | Stocke `slack_api_token_bot` |
+| Module        | Rôle                                    |
+| ------------- | --------------------------------------- |
+| Configuration | Stocke `slack_api_token_bot`            |
 | SharedMethods | HTTP (HTTParty), pagination, appels API |
-| Channel | `list_channels`, `post_message` |
-| User | `list_users` |
+| Channel       | `list_channels`, `post_message`         |
+| User          | `list_users`                            |
 
 ## Configuration
 
