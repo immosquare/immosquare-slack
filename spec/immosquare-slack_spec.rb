@@ -9,7 +9,7 @@
 ## here before any richer spec gets the chance to run.
 ##============================================================##
 RSpec.describe(ImmosquareSlack) do
-  it "exposes a semver VERSION" do
-    expect(ImmosquareSlack::VERSION).to match(/\A\d+\.\d+\.\d+\z/)
+  it("exposes a semver VERSION") do
+    expect(ImmosquareSlack::VERSION).to(match(/\A\d+\.\d+\.\d+\z/))
   end
 end

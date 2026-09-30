@@ -1,6 +1,7 @@
 module ImmosquareSlack
   module User
     extend SharedMethods
+
     class << self
 
 
