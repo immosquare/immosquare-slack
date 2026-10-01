@@ -7,7 +7,7 @@ tags:
 
 # immosquare-slack
 
-`immosquare-slack` lets a Ruby application interact with the Slack API: posting messages to channels, fetching user lists, and more. This page covers installing the gem, configuring the Slack bot token it authenticates with, the `ImmosquareSlack::Channel` and `ImmosquareSlack::User` methods it exposes, and the errors those methods raise. It requires Ruby >= 3.2.6 and a Slack app whose bot token carries the `channels:read`, `chat:write`, `users:read` and `groups:read` scopes.
+`immosquare-slack` lets a Ruby application interact with the Slack API: posting messages to channels, fetching user lists, and more. This page covers installing the gem, configuring the Slack bot token it authenticates with, the `ImmosquareSlack::Channel` and `ImmosquareSlack::User` methods it exposes, and the errors those methods raise. It requires Ruby >= 3.2.6 and a Slack app whose bot token carries the `channels:read`, `groups:read`, `chat:write`, `chat:write.customize`, `users:read` and `users:read.email` scopes.
 
 ## Installing immosquare-slack and configuring the Slack API token
 
@@ -55,7 +55,7 @@ To get your Slack API token, follow these steps:
 
 * In the "OAuth & Permissions" section, you will find your API token.
 
-* Be sure to add the following scopes to your app: `channels:read`, `chat:write`, `users:read`, `groups:read` in the Bot Token Scopes section.
+* Be sure to add the following scopes to your app: `channels:read`, `groups:read`, `chat:write`, `chat:write.customize`, `users:read`, `users:read.email` in the Bot Token Scopes section. `chat:write.customize` is required for `bot_name` to be sent as the message username, and `users:read.email` is required for a list of email addresses passed to `notify` to be resolved to member ids.
 
 ## Listing the channels and the users of the workspace
 
@@ -93,18 +93,18 @@ ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, noti
 | `channel_name`                      | No       | `ImmosquareSlack.configuration.default_channel`  | The name of the Slack channel. Raises `ArgumentError` if no channel can be resolved after fallback. |
 | `notify`                            | No       | `nil`                                            | Who to notify (see accepted values below).                                                          |
 | `notify_text`                       | No       | `"Hello"`                                        | Custom text that precedes the notification.                                                         |
-| `bot_name`                          | No       | `ImmosquareSlack.configuration.default_bot_name` | Name of the bot posting the message.                                                                |
+| `bot_name`                          | No       | `ImmosquareSlack.configuration.default_bot_name` | Display name sent as `username`. Requires the `chat:write.customize` scope.                         |
 | `notify_general_if_invalid_channel` | No       | `true`                                           | If the channel cannot be resolved, post to the general channel instead of raising (see below).      |
 
 **Accepted values for `notify`**:
 
-| Value           | Behavior                                                                 |
-| --------------- | ------------------------------------------------------------------------ |
-| Array of emails | Notifies specific users if their email is linked to their Slack user ID. |
-| `:channel`      | Notifies all members of the channel.                                     |
-| `:here`         | Notifies members currently active in the channel.                        |
-| `:everyone`     | Notifies every member of the workspace (use with caution).               |
-| `:all`          | Notifies all members of the channel individually (mentions each user).   |
+| Value           | Behavior                                                                            |
+| --------------- | ----------------------------------------------------------------------------------- |
+| Array of emails | Mentions members whose `profile.email` is in the list. Requires `users:read.email`. |
+| `:channel`      | Notifies all members of the channel.                                                |
+| `:here`         | Notifies members currently active in the channel.                                   |
+| `:everyone`     | Notifies every member of the workspace (use with caution).                          |
+| `:all`          | Notifies all members of the channel individually (mentions each user).              |
 
 **Example**:
 
@@ -120,21 +120,14 @@ ImmosquareSlack::Channel.post_message(
 )
 ```
 
-This will send a message to the "test" channel that looks like this:
+`post_message` resolves each address against the workspace member list and writes the member id Slack returned. Slack does not turn a mailbox name written into the text into a mention. The channel receives:
 
 ```
-Attention please <@johnDoe>
+Attention please <@U012AB3CD>
 This is a test message
 ```
 
-In the above message:
-- `<@johnDoe>` is a placeholder that Slack will automatically convert to a mention of the user associated with the email "johnDoe@mail.com".
-
-- "Attention please" is the custom notification text provided in `notify_text`.
-
-- "This is a test message" is the main text of the message.
-
-- The message will appear to be posted by the bot named "My Bot".
+`<@U012AB3CD>` stands in for the id of the member whose `profile.email` is `johnDoe@mail.com`. An address that matches nobody is left out, and so is the whole mention when the token cannot read emails. The message is posted under the name "My Bot".
 
 **Shorthand with defaults**:
 
@@ -148,7 +141,7 @@ ImmosquareSlack::Channel.post_message("This is a test message", notify: :channel
 
 A lookup miss can mean the channel does not exist, or that the memoized channel list predates its creation. `post_message` refetches the list once before concluding. If the channel is still not found:
 
-- with `notify_general_if_invalid_channel: true` (the default), the message goes to the general channel instead, prefixed with `immosquare-slack missing channel *<channel_name>*` and notifying `@channel`;
+- with `notify_general_if_invalid_channel: true` (the default), the message is posted on the general channel. Its text is `<!channel>`, then `immosquare-slack missing channel *<channel_name>*`, then `message:`, then the original text. That second post sets the flag to `false`, so a workspace whose general channel cannot be resolved raises instead of looping;
 - with `notify_general_if_invalid_channel: false`, a `RuntimeError` is raised.
 
 The general channel is matched on Slack's `is_general` flag rather than on its name, so a workspace that renamed it is still handled.
@@ -185,6 +178,6 @@ bundle install
 bundle exec rspec
 ```
 
-`bin/ci test` runs that same suite the way the CI does, and `bin/ci` alone chains the install and the suite. Coverage is on unless `COVERAGE` says otherwise, writing an LCOV report to `coverage/lcov.info`.
+`bin/ci` with no argument installs the dependencies and runs that suite. `bin/ci init` only installs, and `bin/ci test` only runs the suite, which is how a CI job splits the two steps. Coverage is on unless `COVERAGE` is set to a value other than `true`, and the LCOV report is written to `coverage/lcov.info`.
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
