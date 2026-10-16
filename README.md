@@ -1,4 +1,6 @@
 ---
+created_at: "2023-12-10"
+updated_at: "2026-09-30"
 locale: en
 tags:
   - app:immosquare-slack
