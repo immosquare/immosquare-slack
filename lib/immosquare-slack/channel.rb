@@ -40,6 +40,13 @@ module ImmosquareSlack
       ## If no channel can be resolved after fallback, raises an
       ## ArgumentError immediately (clearer than the cryptic error
       ## returned by the Slack API).
+      ##
+      ## Slack only notifies a mention to members of the channel the
+      ## message lands in. When `notify` is an Array of emails, the
+      ## mentioned users outside that channel (all of them when the
+      ## message falls back to the general channel) also receive it
+      ## as a direct message from the bot, unless
+      ## `direct_message_unreachable_mentions` is disabled.
       ##============================================================##
       def post_message(text, channel_name: nil, notify: nil, notify_text: nil, bot_name: nil, notify_general_if_invalid_channel: true)
         channel_name ||= ImmosquareSlack.configuration.default_channel
@@ -52,28 +59,22 @@ module ImmosquareSlack
         ## the memoized list predates its creation. Retry once on a
         ## freshly fetched list before declaring it missing.
         ##============================================================##
-        channel_id = get_channel_id_by_name(channel_name)
-        channel_id = get_channel_id_by_name(channel_name, :force => true) if channel_id.nil?
+        channel_id        = get_channel_id_by_name(channel_name)
+        channel_id        = get_channel_id_by_name(channel_name, :force => true) if channel_id.nil?
+        mentioned_members = notify.is_a?(Array) ? members_with_emails(notify) : []
 
         if channel_id.nil?
-          text = "immosquare-slack missing channel *#{channel_name}*\nmessage:\n#{text}"
-          return post_message(text, :channel_name => GENERAL_CHANNEL, :notify => :channel, :notify_text => "", :bot_name => bot_name, :notify_general_if_invalid_channel => false) if channel_name != GENERAL_CHANNEL && notify_general_if_invalid_channel
+          raise("channel '#{channel_name}' not found on slack") if channel_name == GENERAL_CHANNEL || !notify_general_if_invalid_channel
 
-          raise("channel '#{channel_name}' not found on slack")
+          direct_message_unreachable_members(mentioned_members, nil, "Mentioned in *##{channel_name}* (channel not found):\n#{text}", bot_name)
+          text = "immosquare-slack missing channel *#{channel_name}*\nmessage:\n#{text}"
+          return post_message(text, :channel_name => GENERAL_CHANNEL, :notify => :channel, :notify_text => "", :bot_name => bot_name, :notify_general_if_invalid_channel => false)
         end
 
-        url               = "https://slack.com/api/chat.postMessage"
-        notification_text = notify ? build_notification_text(channel_id, notify, *notify_text) : nil
-        text              = "#{notification_text}#{text}"
-
-        body = {
-          :channel => channel_id,
-          :text    => text
-        }
-
-        body[:username] = bot_name if bot_name
-
-        make_slack_api_call(url, :method => :post, :body => body)
+        notification_text = notify ? build_notification_text(channel_id, notify, mentioned_members, *notify_text) : nil
+        response          = send_message(channel_id, "#{notification_text}#{text}", bot_name)
+        direct_message_unreachable_members(mentioned_members, channel_id, "Mentioned in <##{channel_id}>:\n#{text}", bot_name)
+        response
       end
 
       private
@@ -103,6 +104,54 @@ module ImmosquareSlack
       end
 
       ##============================================================##
+      ## Posts `text` to a conversation: a channel id, or a user id
+      ## for a direct message from the bot.
+      ##============================================================##
+      def send_message(conversation_id, text, bot_name)
+        body = {
+          :channel => conversation_id,
+          :text    => text
+        }
+
+        body[:username] = bot_name if bot_name
+
+        make_slack_api_call("https://slack.com/api/chat.postMessage", :method => :post, :body => body)
+      end
+
+      ##============================================================##
+      ## Active workspace members whose `profile.email` is in
+      ## `emails`. Without the `users:read.email` scope no profile
+      ## carries an email, so nobody matches.
+      ##
+      ## Piège : `users.list` renvoie aussi les comptes désactivés,
+      ## qui gardent leur email mais ne peuvent recevoir aucun DM.
+      ##============================================================##
+      def members_with_emails(emails)
+        ImmosquareSlack::User.list_users.select {|m| !m["deleted"] && emails.include?(m.dig("profile", "email")) }
+      end
+
+      ##============================================================##
+      ## Sends `text` as a direct message to the mentioned members who
+      ## are not in the channel (`channel_id` nil: none of them is
+      ## reachable), since Slack would not notify them.
+      ##
+      ## Best effort : un DM refusé par Slack est ignoré. Le laisser
+      ## remonter ferait échouer `post_message` après le post dans le
+      ## channel (doublon au retry de l'appelant) ou avant le repli
+      ## sur general (message perdu).
+      ##============================================================##
+      def direct_message_unreachable_members(mentioned_members, channel_id, text, bot_name)
+        return if mentioned_members.empty? || !ImmosquareSlack.configuration.direct_message_unreachable_mentions
+
+        channel_member_ids = channel_id ? get_channel_members(channel_id) : []
+        mentioned_members.reject {|m| channel_member_ids.include?(m["id"]) }.each do |member|
+          send_message(member["id"], text, bot_name)
+        rescue RuntimeError
+          next
+        end
+      end
+
+      ##============================================================##
       ## Builds the notification prefix prepended to the message
       ## body. `notify` may be:
       ##   - an Array of emails: mentions matching workspace members
@@ -112,12 +161,10 @@ module ImmosquareSlack
       ## Note: avoids `in?` and `present?` so the gem stays usable
       ## from plain Ruby (no Rails / ActiveSupport required).
       ##============================================================##
-      def build_notification_text(channel_id, notify, text = "Hello")
+      def build_notification_text(channel_id, notify, mentioned_members, text = "Hello")
         final =
           if notify.is_a?(Array)
-            members = ImmosquareSlack::User.list_users
-            members = members.select {|m| notify.include?(m["profile"]["email"]) }
-            members.map {|m| "<@#{m["id"]}>" }.join(", ")
+            mentioned_members.map {|m| "<@#{m["id"]}>" }.join(", ")
           elsif notify.to_sym == :all
             members = get_channel_members(channel_id)
             members.map {|m| "<@#{m}>" }.join(", ")

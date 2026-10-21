@@ -26,6 +26,8 @@ GEM
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
       uri (>= 0.13.1)
+    addressable (2.9.0)
+      public_suffix (>= 2.0.2, < 8.0)
     ast (2.4.3)
     base64 (0.3.0)
     better_html (2.2.0)
@@ -39,6 +41,9 @@ GEM
     builder (3.3.0)
     concurrent-ruby (1.3.8)
     connection_pool (3.0.2)
+    crack (1.0.1)
+      bigdecimal
+      rexml
     crass (1.0.7)
     csv (3.3.6)
     diff-lcs (1.6.2)
@@ -51,6 +56,7 @@ GEM
       rubocop (>= 1)
       smart_properties
     erubi (1.13.1)
+    hashdiff (1.2.1)
     htmlbeautifier (1.4.3)
     httparty (0.24.3)
       csv
@@ -93,6 +99,7 @@ GEM
       ast (~> 2.4.1)
       racc
     prism (1.9.0)
+    public_suffix (7.0.5)
     racc (1.8.1)
     rails-dom-testing (2.3.0)
       activesupport (>= 5.0.0)
@@ -108,6 +115,7 @@ GEM
       prism (>= 1.6.0)
       tsort
     regexp_parser (2.13.1)
+    rexml (3.4.4)
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
@@ -151,6 +159,10 @@ GEM
       unicode-emoji (~> 4.3)
     unicode-emoji (4.3.0)
     uri (1.1.2)
+    webmock (3.34.0)
+      addressable (>= 2.8.0)
+      crack (>= 0.3.2)
+      hashdiff (>= 0.4.0, < 2.0.0)
 
 PLATFORMS
   arm64-darwin
@@ -172,6 +184,7 @@ DEPENDENCIES
   ruby-lsp
   simplecov
   simplecov-lcov
+  webmock
 
 BUNDLED WITH
   4.0.23
