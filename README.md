@@ -1,6 +1,6 @@
 ---
 created_at: "2023-12-10"
-updated_at: "2026-09-30"
+updated_at: "2026-10-21"
 locale: en
 tags:
   - app:immosquare-slack
@@ -37,13 +37,14 @@ ImmosquareSlack.config do |config|
 end
 ```
 
-`ImmosquareSlack.config` accepts three options — the token used to authenticate, and two values that act as fallbacks when a call omits them:
+`ImmosquareSlack.config` accepts four options — the token used to authenticate, two values that act as fallbacks when a call omits them, and a switch for the direct messages sent to mentioned users outside the channel:
 
-| Option                | Type   | Default | Description                                                                          |
-| --------------------- | ------ | ------- | ------------------------------------------------------------------------------------ |
-| `slack_api_token_bot` | String | `nil`   | Bot token sent as `Authorization: Bearer` on every API call.                         |
-| `default_channel`     | String | `nil`   | Channel used when `channel_name` is not passed to `Channel.post_message`.            |
-| `default_bot_name`    | String | `nil`   | Bot display name used when `bot_name` is not passed to `Channel.post_message`.       |
+| Option                                | Type    | Default | Description                                                                                                                  |
+| ------------------------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `slack_api_token_bot`                 | String  | `nil`   | Bot token sent as `Authorization: Bearer` on every API call.                                                                 |
+| `default_channel`                     | String  | `nil`   | Channel used when `channel_name` is not passed to `Channel.post_message`.                                                    |
+| `default_bot_name`                    | String  | `nil`   | Bot display name used when `bot_name` is not passed to `Channel.post_message`.                                               |
+| `direct_message_unreachable_mentions` | Boolean | `true`  | Also send the message as a direct message to users mentioned by email who are not in the channel the message lands in.       |
 
 The two defaults let an application that always notifies the same channel avoid repeating the value at every call site.
 
@@ -100,13 +101,13 @@ ImmosquareSlack::Channel.post_message(text, channel_name: nil, notify: nil, noti
 
 **Accepted values for `notify`**:
 
-| Value           | Behavior                                                                            |
-| --------------- | ----------------------------------------------------------------------------------- |
-| Array of emails | Mentions members whose `profile.email` is in the list. Requires `users:read.email`. |
-| `:channel`      | Notifies all members of the channel.                                                |
-| `:here`         | Notifies members currently active in the channel.                                   |
-| `:everyone`     | Notifies every member of the workspace (use with caution).                          |
-| `:all`          | Notifies all members of the channel individually (mentions each user).              |
+| Value           | Behavior                                                                                                                                            |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Array of emails | Mentions active members whose `profile.email` is in the list, and sends a direct message to those outside the channel. Requires `users:read.email`. |
+| `:channel`      | Notifies all members of the channel.                                                                                                                |
+| `:here`         | Notifies members currently active in the channel.                                                                                                   |
+| `:everyone`     | Notifies every member of the workspace (use with caution).                                                                                          |
+| `:all`          | Notifies all members of the channel individually (mentions each user).                                                                              |
 
 **Example**:
 
@@ -129,7 +130,7 @@ Attention please <@U012AB3CD>
 This is a test message
 ```
 
-`<@U012AB3CD>` stands in for the id of the member whose `profile.email` is `johnDoe@mail.com`. An address that matches nobody is left out, and so is the whole mention when the token cannot read emails. The message is posted under the name "My Bot".
+`<@U012AB3CD>` stands in for the id of the member whose `profile.email` is `johnDoe@mail.com`. An address that matches no active member — unknown, or belonging to a deactivated account — is left out, and so is the whole mention when the token cannot read emails. The message is posted under the name "My Bot". If that member has not joined `#test`, they also receive the message as a direct message from the bot.
 
 **Shorthand with defaults**:
 
@@ -143,10 +144,26 @@ ImmosquareSlack::Channel.post_message("This is a test message", notify: :channel
 
 A lookup miss can mean the channel does not exist, or that the memoized channel list predates its creation. `post_message` refetches the list once before concluding. If the channel is still not found:
 
-- with `notify_general_if_invalid_channel: true` (the default), the message is posted on the general channel. Its text is `<!channel>`, then `immosquare-slack missing channel *<channel_name>*`, then `message:`, then the original text. That second post sets the flag to `false`, so a workspace whose general channel cannot be resolved raises instead of looping;
+- with `notify_general_if_invalid_channel: true` (the default), the message is posted on the general channel. Its text is `<!channel>`, then `immosquare-slack missing channel *<channel_name>*`, then `message:`, then the original text. That second post sets the flag to `false`, so a workspace whose general channel cannot be resolved raises instead of looping. Every member mentioned through an array of emails first receives the original text as a direct message (see "Direct messages to mentioned users outside the channel");
 - with `notify_general_if_invalid_channel: false`, a `RuntimeError` is raised.
 
 The general channel is matched on Slack's `is_general` flag rather than on its name, so a workspace that renamed it is still handled.
+
+## Direct messages to mentioned users outside the channel
+
+Slack only notifies a mention to members of the channel the message lands in: a user mentioned in a channel they have not joined gets no notification at all. When `notify` is an array of emails, `ImmosquareSlack::Channel.post_message` therefore also sends the message as a direct message from the bot to each mentioned member who is not in the target channel. Members already in the channel get no direct message, and the `:channel`, `:here`, `:everyone` and `:all` values of `notify` never send one.
+
+The direct message reads `Mentioned in <#channel_id>:` (rendered by Slack as a link to the channel), followed by the original text without the notification prefix. Channel membership is read with `conversations.members` after the channel post, which adds one API call per message whenever at least one email matched and the option is on. When the channel cannot be resolved and the message falls back to the general channel, every mentioned member gets a direct message prefixed with `Mentioned in *#<channel_name>* (channel not found):`, since the general post does not carry their mention.
+
+Direct messages are best effort: a direct message that Slack refuses is skipped, the next one is still sent, and `post_message` returns the response of the channel post. A refused direct message therefore never fails the call, never causes a duplicate channel post when the caller retries, and never prevents the fallback to the general channel.
+
+To keep mentions only, without any direct message, turn the option off:
+
+```ruby
+ImmosquareSlack.config do |config|
+  config.direct_message_unreachable_mentions = false
+end
+```
 
 ## Errors raised by immosquare-slack
 
@@ -159,7 +176,7 @@ Four situations make an `immosquare-slack` call raise — two when `Channel.post
 | Slack answers with `"ok": false`                                            | `RuntimeError` carrying the full response body as JSON       |
 | Slack answers with a body that is not valid JSON                            | `RuntimeError`, `Invalid JSON response`                      |
 
-Apart from the single channel-list refetch that `post_message` performs before declaring a channel missing, nothing is retried and no error is swallowed. Wrap the call when a failed notification must not break the caller:
+Two exceptions aside — the single channel-list refetch that `post_message` performs before declaring a channel missing, and the direct messages to mentioned users outside the channel, whose refusals are skipped — nothing is retried and no error is swallowed. Wrap the call when a failed notification must not break the caller:
 
 ```ruby
 begin
@@ -179,6 +196,8 @@ Run the test suite before opening a pull request:
 bundle install
 bundle exec rspec
 ```
+
+The specs stub the Slack API with WebMock, which also blocks any real network call, so they run without a Slack token.
 
 `bin/ci` with no argument installs the dependencies and runs that suite. `bin/ci init` only installs, and `bin/ci test` only runs the suite, which is how a CI job splits the two steps. Coverage is on unless `COVERAGE` is set to a value other than `true`, and the LCOV report is written to `coverage/lcov.info`.
 
