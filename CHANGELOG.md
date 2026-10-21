@@ -1,3 +1,8 @@
+## [0.2.2] - 2026-10-21
+- `post_message` with `notify: [emails]` now also sends the message as a direct message to mentioned users who are not members of the target channel, since Slack does not notify them (all mentioned users when the message falls back to general). Enabled by default; opt out with `config.direct_message_unreachable_mentions = false`
+- Direct messages are best effort: a DM refused by Slack never makes `post_message` fail
+- Deactivated Slack accounts are no longer mentioned
+
 ## [0.2.1] - 2026-05-26
 - Refetch the channel list once on a lookup miss before falling back, so a channel created after the process started is found instead of being misrouted to general
 
