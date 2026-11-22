@@ -1,3 +1,11 @@
+## [0.2.3] - 2026-11-22
+
+### Fixed
+- channels: concurrent `list_channels(force: true)` calls share a single refresh instead of each paginating `conversations.list`, which preserves the Slack rate limit; a Slack error keeps the last cached list
+
+### Changed
+- channels: `conversations.list` is fetched 200 channels per page
+
 ## [0.2.2] - 2026-10-21
 - `post_message` with `notify: [emails]` now also sends the message as a direct message to mentioned users who are not members of the target channel, since Slack does not notify them (all mentioned users when the message falls back to general). Enabled by default; opt out with `config.direct_message_unreachable_mentions = false`
 - Direct messages are best effort: a DM refused by Slack never makes `post_message` fail
