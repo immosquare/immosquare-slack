@@ -3,6 +3,7 @@ module ImmosquareSlack
     extend SharedMethods
 
     GENERAL_CHANNEL = "general".freeze
+    CHANNELS_LOCK   = Mutex.new
 
     class << self
 
@@ -13,18 +14,24 @@ module ImmosquareSlack
       ##
       ## Piège : le cache ne reflète que l'état du workspace au
       ## premier appel. Un channel créé ou renommé ensuite n'y est
-      ## pas. `force: true` vide le cache et refetch — à utiliser sur
-      ## un miss de lookup pour distinguer un channel réellement
-      ## absent d'un cache périmé avant tout fallback.
+      ## pas. `force: true` rafraîchit le cache sur un échec de
+      ## recherche. Les requêtes simultanées partagent le même
+      ## rafraîchissement pour préserver le quota de conversations.list.
+      ## Une erreur Slack laisse la dernière liste utilisable en cache.
       ##============================================================##
       def list_channels(force: false)
-        @list_channels = nil if force
-        @list_channels ||= begin
+        cached_channels = @list_channels
+        return cached_channels if cached_channels && !force
+
+        CHANNELS_LOCK.synchronize do
+          return @list_channels if @list_channels && !@list_channels.equal?(cached_channels)
+
           extra_params = {
             :types            => ["public_channel", "private_channel"].join(","),
-            :exclude_archived => false
+            :exclude_archived => false,
+            :limit            => 200
           }
-          fetch_paginated_data("https://slack.com/api/conversations.list", "channels", extra_params)
+          @list_channels = fetch_paginated_data("https://slack.com/api/conversations.list", "channels", extra_params)
         end
       end
 
